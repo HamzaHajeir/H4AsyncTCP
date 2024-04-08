@@ -44,6 +44,10 @@ For example, other rights such as publicity, privacy, or moral rights may limit 
 #if H4AT_TLS_CHECKER
 #include "mbedtls/x509_crt.h"
 #include "mbedtls/pk.h"
+#if MBEDTLS_VERSION_MAJOR >= 3
+#include "mbedtls/ctr_drbg.h"
+#include "mbedtls/entropy.h"
+#endif
 #endif
 
 #if LWIP_ALTCP == 0
@@ -1024,7 +1028,20 @@ bool H4AsyncClient::isPrivKeyValid(const u8_t *privkey, size_t privkey_len,
 {
     static mbedtls_pk_context ctx;
     mbedtls_pk_init(&ctx);
+#if MBEDTLS_VERSION_MAJOR >= 3
+    static mbedtls_ctr_drbg_context ctr_drbg;
+    static mbedtls_entropy_context entropy;
+    mbedtls_entropy_init(&entropy);
+    mbedtls_ctr_drbg_init(&ctr_drbg);
+    int ret = mbedtls_ctr_drbg_seed(&ctr_drbg, mbedtls_entropy_func, &entropy, NULL, 0);
+    auto r = mbedtls_pk_parse_key(&ctx, privkey, privkey_len, privkey_pass, privkey_pass_len
+                            , mbedtls_ctr_drbg_random, &ctr_drbg
+    );
+    mbedtls_ctr_drbg_free(&ctr_drbg);
+    mbedtls_entropy_free(&entropy);
+#else
     auto r = mbedtls_pk_parse_key(&ctx, privkey, privkey_len, privkey_pass, privkey_pass_len); // Future versions requires RNGs (function f_rng, parameter p_rng)
+#endif
     mbedtls_pk_free(&ctx);
     H4AT_PRINTF("Private Key Parsing %s\n", r ? " Failed" : "Succeeded");
     if (r)

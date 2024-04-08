@@ -37,6 +37,7 @@ For example, other rights such as publicity, privacy, or moral rights may limit 
 #define LWIP_INTERNAL
 #include "lwip/err.h"
 #include "lwip/tcpbase.h"
+#include "lwip/ip_addr.h"
 
 #include "IPAddress.h"
 
@@ -317,10 +318,14 @@ class H4AsyncServer {
         virtual H4AsyncClient* _instantiateRequest(struct altcp_pcb *p);
         static  bool            checkMemory (const H4AsyncServer& srv) {
                                             auto fh=_HAL_freeHeap();
+                                            auto fb=_HAL_maxHeapBlock();
                                             auto _heapLO = H4AT_HEAP_THROTTLE_LO + srv._heap_alloc;
                                             auto _heapHI = H4AT_HEAP_THROTTLE_HI + srv._heap_alloc;
-                                            H4AT_PRINT3("FREE HEAP %u LOW %u HIGH %u BKV %d\n",fh,_heapLO,_heapHI,_bakov);
-                                            if (fh < _heapLO || (_bakov && (fh < _heapHI))){
+                                            auto _blockLO= H4AT_HEAP_THROTTLE_LO + srv._block_alloc;
+                                            // Serial.printf("FREE HEAP %u LOW %u HIGH %u BKV %d\n",fh,_heapLO,_heapHI,_bakov);
+                                            H4AT_PRINT3("FREE HEAP %u BLOCK %u LOWH %u LOWB %u\n",fh,fb,_heapLO,_blockLO);
+                                            // if (fh < _heapLO || (_bakov && (fh < _heapHI))){
+                                            if (fh < _heapLO || fb < _blockLO){
                                                 _bakov = true;
                                                 return false;
                                             }
