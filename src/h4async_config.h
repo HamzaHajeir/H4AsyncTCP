@@ -24,7 +24,7 @@ SOFTWARE.
 */
 #pragma once
 #include <lwip/opt.h>
-#define H4AT_VERSION "0.0.19"
+#define H4AT_VERSION "0.0.20"
 /*
     Debug levels: 
     0 - No debug messages, no debug functions
@@ -71,4 +71,8 @@ SOFTWARE.
 #define H4AT_TLS_SESSION H4AT_USE_TLS_SESSION
 #else
 #define H4AT_TLS_SESSION 0
+#ifdef H4AT_TLS_CHECKER
+#undef H4AT_TLS_CHECKER
+#endif
+#define H4AT_TLS_CHECKER 0
 #endif

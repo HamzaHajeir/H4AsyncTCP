@@ -425,7 +425,7 @@ err_t _tcp_connected(void* arg, altcp_pcb* tpcb, err_t err){
     return ERR_OK;
 }
 
-void _tcp_dns_found(const char * name, struct ip_addr * ipaddr, void * arg) {
+void _tcp_dns_found(const char * name, ip_addr_t* ipaddr, void * arg) {
     H4AT_PRINT2("_tcp_dns_found %s i=%p p=%p\n",name,ipaddr,arg);
     auto p=reinterpret_cast<H4AsyncClient*>(arg);
     if(ipaddr){
@@ -838,7 +838,7 @@ void H4AsyncClient::connect(const std::string& host,uint16_t port){
 
 void H4AsyncClient::connect(const std::string& url){
     _parseURL(url);
-   connect(_URL.host.data(),_URL.port);
+   connect(_URL.host,_URL.port);
 }
 
 void H4AsyncClient::connect(IPAddress ip,uint16_t port){

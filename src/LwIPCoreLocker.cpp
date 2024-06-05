@@ -3,7 +3,7 @@
 #include "lwipopts.h"
 #include "lwip/tcpip.h"
 
-volatile int LwIPCoreLocker::_locks;
+volatile int LwIPCoreLocker::_locks=0;
 #define PRINTAPPENDS "\t=====LOCKER=====\t"
 
 LwIPCoreLocker::LwIPCoreLocker() {
@@ -23,10 +23,12 @@ void LwIPCoreLocker::unlock()
 	}
 
 	if (_locked){
-		if (--_locks == 0)
+		_locks = _locks - 1;
+		if (_locks == 0) {
 			UNLOCK_TCPIP_CORE();
+			_locked=false;
+		}
 	}
-	_locked=false;
 #endif
 }
 
@@ -51,9 +53,10 @@ void LwIPCoreLocker::lock()
 		H4AT_PRINT4(PRINTAPPENDS"Don't LOCK from LWIP THREAD\n");
 		return;
 	}
-	if (!_locks++) { // The first lock
+	if (!_locks) { // The first lock
 		LOCK_TCPIP_CORE();
 	}
+	_locks = _locks + 1;
 	_locked=true;
 #endif
 }

@@ -4,9 +4,21 @@
 
 ## ArduinoIDE library: Asynchronous TCP Rx/Tx Client and abstract Asynchronous server
 
+### Version 0.0.20
+- Fixes ALTCP Allocator for servers when LWIP_ALTCP is not enabled.
+- Fixes _tcp_dns_found callback signature.
+- Correcting the data type passed by calling connect().
+- Mutes compiling warning by using -- and ++ operators for volatile data.
+- Disables TLS Checkers when TLS is disabled.
+- By doing so, this supports RP2040 earlephilhower's Arduino core (No TLS Yet) and ESP32 v3.0.0 Arduino core release.
+### Version 0.0.19
+- Adds support to mbedtls v3.
+
 ### Version 0.0.18
+
 - Updates _lastSeen on TCP Connected.
 - Prevents unnecessary extra scavenge queues.
+
 ### Version 0.0.17
 
 - Adds ESP8266 Compatibility.

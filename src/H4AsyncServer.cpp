@@ -119,8 +119,9 @@ void H4AsyncServer::begin() {
         H4AT_PRINT1("Setting up unsecured server\n");
         allocator = altcp_allocator_t {altcp_tcp_alloc, _tlsConfig};
     }
-#endif
 #else
+    allocator = altcp_allocator_t {altcp_tcp_alloc, nullptr};
+#endif
 #endif
     _raw_pcb = altcp_new_ip_type(&allocator, IPADDR_TYPE_ANY);
     if (_raw_pcb != NULL) {
