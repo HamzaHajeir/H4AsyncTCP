@@ -1,2 +1,1 @@
-LwIP improvement where to call err callback with appropriate error describing invalid/unaccepted session (Think of it)
-Core functionality of client session management (Source from MQTT and HTTP)
+- Let the user rx function direct you to either free the data block or transfer its ownership.
