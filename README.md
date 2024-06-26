@@ -4,6 +4,9 @@
 
 ## ArduinoIDE library: Asynchronous TCP Rx/Tx Client and abstract Asynchronous server
 
+### Version 0.0.21
+- Fixes LwIP Core Locking bug.
+
 ### Version 0.0.20
 - Fixes ALTCP Allocator for servers when LWIP_ALTCP is not enabled.
 - Fixes _tcp_dns_found callback signature.

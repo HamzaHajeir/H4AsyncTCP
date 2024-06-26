@@ -337,11 +337,11 @@ class H4AsyncServer {
 
 class LwIPCoreLocker {
     static volatile int         _locks;
-                    bool        _locked=false;
+                    bool        _locking=false;
     public:
         LwIPCoreLocker();
                     void        unlock();
         ~LwIPCoreLocker();
-                    bool        locked() { return _locked; }
+                    bool        locking() { return _locking; }
                     void        lock();
 };
