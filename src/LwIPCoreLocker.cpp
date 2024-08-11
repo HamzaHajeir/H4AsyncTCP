@@ -3,7 +3,9 @@
 #include "lwipopts.h"
 #include "lwip/tcpip.h"
 
+#if H4AT_HAS_RTOS
 volatile int LwIPCoreLocker::_locks=0;
+#endif
 #define PRINTAPPENDS "\t=====LOCKER=====\t"
 
 LwIPCoreLocker::LwIPCoreLocker() {
@@ -58,5 +60,13 @@ void LwIPCoreLocker::lock()
 	}
 	_locks = _locks + 1;
 	_locking = true;
+#endif
+}
+
+bool LwIPCoreLocker::locking() {
+#if H4AT_HAS_RTOS
+	return _locking;
+#else
+	return false;
 #endif
 }

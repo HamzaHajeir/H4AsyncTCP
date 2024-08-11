@@ -59,6 +59,7 @@ std::unordered_set<H4AsyncClient*> H4AsyncClient::txQueueClients;
 std::unordered_set<H4AsyncClient*> H4AsyncClient::openConnections;
 std::unordered_set<H4AsyncClient*> H4AsyncClient::unconnectedClients;
 bool H4AsyncClient::_scavenging = false;
+bool H4AsyncClient::_processingQ = false;
 
 H4_INT_MAP H4AsyncClient::_errorNames={
 #if H4AT_DEBUG
@@ -374,16 +375,33 @@ err_t _raw_recv(void *arg, struct altcp_pcb *tpcb, struct pbuf *p, err_t err){
     return err;
 }
 
+void H4AsyncClient::dumptxQueueClients() {
+    H4AT_PRINT2("txQueueClients %d\n", txQueueClients.size());
+#if H4AT_DEBUG>=2
+    for (const auto c : txQueueClients) Serial.printf("%p\t", c);
+    Serial.printf("\n");
+#endif
+}
+
 err_t _raw_sent(void* arg,struct altcp_pcb *tpcb, u16_t len){
     H4AT_PRINT2("_raw_sent %p pcb=%p len=%d\n",arg,tpcb,len);
     auto rq=reinterpret_cast<H4AsyncClient*>(arg);
     rq->_lastSeen=millis();
-    if (H4AsyncClient::txQueueClients.size()){
+    H4AsyncClient::dumptxQueueClients();
+    if (H4AsyncClient::txQueueClients.size() && !H4AsyncClient::_processingQ){
         h4.queueFunction([]{
-            for (auto c:H4AsyncClient::txQueueClients){
+            H4AT_PRINT2("txQueueClients QF %d\n", H4AsyncClient::txQueueClients.size());
+            H4AsyncClient::dumptxQueueClients();
+            LwIPCoreLocker lock;
+            H4AT_PRINT3("After LOCK %d\n", H4AsyncClient::txQueueClients.size());
+            auto clients = H4AsyncClient::txQueueClients; 
+            for (auto c:clients){
+                H4AT_PRINT2("%p->_processQueue()\n", c);
                 c->_processQueue();
             }
+            H4AsyncClient::_processingQ = false; 
         });
+        H4AsyncClient::_processingQ = true;
     }
     return ERR_OK;
 }
@@ -922,7 +940,7 @@ size_t H4AsyncClient::_processTX(const uint8_t *data, size_t length, bool copy)
                 sent+=chunk;
                 left-=chunk;
             }
-        } 
+        }
         else break;
     }
 
@@ -968,14 +986,18 @@ void H4AsyncClient::TX(const uint8_t* data,size_t len,bool copy){
         _notify(0,_state == H4AT_CONN_UNCONNECTED ? H4AT_UNCONNECTED : H4AT_CLOSING);
     }
     else {
-        auto emptyQ=_processQueue();
+        auto emptyQ = _queue.empty();
         size_t sent=0;
+        H4AT_PRINT2("emptyQ %d _processingQ %d\n", emptyQ, _processingQ);
+        if (!_processingQ || emptyQ){
+            emptyQ=_processQueue();
 
-        if (emptyQ) {
-            sent = _processTX(data, len, copy);
-            H4AT_PRINT2("_processTX()->%d\n", sent);
-        } else {
-            H4AT_PRINT2("_queue isn't empty!\n");
+            if (emptyQ) {
+                sent = _processTX(data, len, copy);
+                H4AT_PRINT2("_processTX()->%d\n", sent);
+            } else {
+                H4AT_PRINT2("_queue isn't empty!\n");
+            }
         }
         lock.unlock();
         if (sent>=0 && sent<=len){

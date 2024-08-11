@@ -34,7 +34,6 @@ For example, other rights such as publicity, privacy, or moral rights may limit 
 
 #include<Arduino.h>
 
-#define LWIP_INTERNAL
 #include "lwip/err.h"
 #include "lwip/tcpbase.h"
 #include "lwip/ip_addr.h"
@@ -44,12 +43,13 @@ For example, other rights such as publicity, privacy, or moral rights may limit 
 #include <H4Tools.h>
 #include <H4.h>
 
+#include<array>
 #include<functional>
-#include<string>
-#include<vector>
 #include<map>
 #include<queue>
+#include<string>
 #include<unordered_set>
+#include<vector>
 
 #if H4AT_TLS
 enum {
@@ -150,7 +150,9 @@ class H4AsyncClient {
                 void                _popQueue() { if (_queue.size()) { delete _queue.front(); _queue.pop();} }
         static  bool                _validConnection(H4AsyncClient* c) { return openConnections.count(c); }
         static  std::unordered_set<H4AsyncClient*> txQueueClients;
+        static  bool                _processingQ;
                 H4AT_TCP_QUEUE      _queue;
+        static  void    dumptxQueueClients();
         friend  err_t   _raw_sent(void* arg,struct altcp_pcb *tpcb, u16_t len);
         friend  err_t   _raw_recv(void *arg, struct altcp_pcb *tpcb, struct pbuf *p, err_t err);
         friend  err_t   _raw_accept(void *arg, struct altcp_pcb *p, err_t err);
@@ -179,7 +181,7 @@ class H4AsyncClient {
                 void                _removeSession();
 #endif
     protected:
-                H4AT_FN_RXDATA      _rxfn=[](const uint8_t* data,size_t len){ Serial.printf("RXFN SAFETY\n"); dumphex(data,len); };
+                H4AT_FN_RXDATA      _rxfn=[](const uint8_t* data,size_t len){ Serial.printf("RXFN SAFETY\n"); dumphex(data,len); }; // [ ] TODO: Add return value as director to free data.
     public:
         static  std::unordered_set<H4AsyncClient*> openConnections;
         static  std::unordered_set<H4AsyncClient*> unconnectedClients;
@@ -336,12 +338,14 @@ class H4AsyncServer {
 };
 
 class LwIPCoreLocker {
+#if H4AT_HAS_RTOS
     static volatile int         _locks;
                     bool        _locking=false;
+#endif
     public:
         LwIPCoreLocker();
                     void        unlock();
         ~LwIPCoreLocker();
-                    bool        locking() { return _locking; }
                     void        lock();
+                    bool        locking();
 };
