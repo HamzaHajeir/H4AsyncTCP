@@ -4,6 +4,9 @@
 
 ## ArduinoIDE library: Asynchronous TCP Rx/Tx Client and abstract Asynchronous server
 
+### Version 0.0.22
+- Fixes two bugs related to running the TX Queue from `raw_sent`.
+
 ### Version 0.0.21
 - Fixes LwIP Core Locking bug.
 
