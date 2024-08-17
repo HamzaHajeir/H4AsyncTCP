@@ -76,8 +76,9 @@ enum {
 #endif
     H4AT_MAX_ERROR
 };
+#define _H4AT_PRINTF(...) _H4T_PRINTF(__VA_ARGS__)
 #if H4AT_DEBUG
-    #define H4AT_PRINTF(...) Serial.printf(__VA_ARGS__)
+#define H4AT_PRINTF(...) _H4AT_PRINTF(__VA_ARGS__)
     template<int I, typename... Args>
     void H4AT_PRINT(const char* fmt, Args... args) {
         #ifdef ARDUINO_ARCH_ESP32
@@ -181,7 +182,7 @@ class H4AsyncClient {
                 void                _removeSession();
 #endif
     protected:
-                H4AT_FN_RXDATA      _rxfn=[](const uint8_t* data,size_t len){ Serial.printf("RXFN SAFETY\n"); dumphex(data,len); }; // [ ] TODO: Add return value as director to free data.
+                H4AT_FN_RXDATA      _rxfn=[](const uint8_t* data,size_t len){ _H4AT_PRINTF("RXFN SAFETY\n"); dumphex(data,len); }; // [ ] TODO: Add return value as director to free data.
     public:
         static  std::unordered_set<H4AsyncClient*> openConnections;
         static  std::unordered_set<H4AsyncClient*> unconnectedClients;

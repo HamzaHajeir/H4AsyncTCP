@@ -177,12 +177,12 @@ void H4AsyncClient::printState(std::string context){
 void H4AsyncClient::retryClose(H4AsyncClient* c,altcp_pcb *pcb)
 {
     auto state = getTCPState(pcb, c->_isSecure);
-    Serial.printf("retryClose %p state=%d\n", pcb, state);
+    _H4AT_PRINTF("retryClose %p state=%d\n", pcb, state);
     // Check the presence of the PCB with other Clients ??
     auto checkOtherOwners = [c,pcb] (std::unordered_set<H4AsyncClient*>& set){
         for (auto& _c : set){
             if (_c->pcb == pcb && _c!=c){
-                Serial.printf("%p found in other client %p\n", pcb, _c);
+                _H4AT_PRINTF("%p found in other client %p\n", pcb, _c);
                 return true;
             }
         }
@@ -195,20 +195,20 @@ void H4AsyncClient::retryClose(H4AsyncClient* c,altcp_pcb *pcb)
         return;
     
     if (state <= CLOSED || state > TIME_WAIT){
-        Serial.printf("Already freed/closed\n", pcb);
+        _H4AT_PRINTF("Already freed/closed\n", pcb);
         return;
     }
     LwIPCoreLocker lock;
     err_t err = altcp_close(pcb);
     if (err != ERR_OK){
-        Serial.printf("failed with %d\n", pcb, err);
+        _H4AT_PRINTF("failed with %d\n", pcb, err);
         if (err == ERR_MEM){
             h4.queueFunction([c, pcb](){ retryClose(c,pcb); }); // h4.once(1000, [pcb](){retruClose(pcb);}); ???
         }
     } 
     else 
     {
-        Serial.printf("freed %p\n", pcb);
+        _H4AT_PRINTF("freed %p\n", pcb);
     }
 }
 
@@ -378,8 +378,8 @@ err_t _raw_recv(void *arg, struct altcp_pcb *tpcb, struct pbuf *p, err_t err){
 void H4AsyncClient::dumptxQueueClients() {
     H4AT_PRINT2("txQueueClients %d\n", txQueueClients.size());
 #if H4AT_DEBUG>=2
-    for (const auto c : txQueueClients) Serial.printf("%p\t", c);
-    Serial.printf("\n");
+    for (const auto c : txQueueClients) H4AT_PRINTF("%p\t", c);
+    H4AT_PRINTF("\n");
 #endif
 }
 
@@ -1039,9 +1039,9 @@ bool H4AsyncClient::isCertValid(const u8_t *cert, size_t cert_len)
 {
     static mbedtls_x509_crt chain;
     auto r = mbedtls_x509_crt_parse(&chain, cert, cert_len);
-    H4AT_PRINTF("Certificate(s) parsing %s\n", r ? "Failed" : "Succeeded");
+    _H4AT_PRINTF("Certificate(s) parsing %s\n", r ? "Failed" : "Succeeded");
     if (r)
-        H4AT_PRINTF("Parse error %x [%d]\n", r, r);
+        _H4AT_PRINTF("Parse error %x [%d]\n", r, r);
 
 	return (r==0);
 }
@@ -1065,9 +1065,9 @@ bool H4AsyncClient::isPrivKeyValid(const u8_t *privkey, size_t privkey_len,
     auto r = mbedtls_pk_parse_key(&ctx, privkey, privkey_len, privkey_pass, privkey_pass_len); // Future versions requires RNGs (function f_rng, parameter p_rng)
 #endif
     mbedtls_pk_free(&ctx);
-    H4AT_PRINTF("Private Key Parsing %s\n", r ? " Failed" : "Succeeded");
+    _H4AT_PRINTF("Private Key Parsing %s\n", r ? " Failed" : "Succeeded");
     if (r)
-        H4AT_PRINTF("Parse error %x [%d]\n", r, r);
+        _H4AT_PRINTF("Parse error %x [%d]\n", r, r);
 
 	return (r==0);
 }
