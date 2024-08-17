@@ -2,7 +2,10 @@
 
 # H4AsyncTCP
 
-## ArduinoIDE library: Asynchronous TCP Rx/Tx Client and abstract Asynchronous server
+## Arduino library: Asynchronous TCP Rx/Tx Client and abstract Asynchronous server
+
+### Version 0.0.23
+- Enhances Debugging macros to depend over the one defined at [H4Tools library](https://github.com/hamzahajeir/h4tools). 
 
 ### Version 0.0.22
 - Fixes two bugs related to running the TX Queue from `raw_sent`.
@@ -168,17 +171,24 @@ H4AsyncTCP provides two simple-to-use classes which handle all aspects of Asynch
 
 The library has been tested using the following firmware. Please do not even *think* about raising any issues unless you have the following correctly installed.
 
-- [ESP8266 core @^3.0.2](https://github.com/esp8266/Arduino)
-- [ESP32 core @^2.0.0](https://github.com/espressif/arduino-esp32)
-- [ArduinoIDE 1.8.16](https://www.arduino.cc/en/software)
+* [ESP8266 core 3.1.2](https://github.com/esp8266/Arduino)
+* [ESP32 core 3.0.4](https://github.com/espressif/arduino-esp32)
+* [RP2040 core 3.9.5](https://github.com/earlephilhower/arduino-pico)
+* [ArduinoIDE 2.3.2](https://www.arduino.cc/en/software)
 
 ---
 
 ## Installation
 
-Soon* all H4 libraries will use the [H4 Installer](https://github.com/philbowles/h4installer). This ensures that all versions match and that other additional special functions are included e.g. Addition of optimised board definitions in H4Plugins...
+## PlatformIO
 
-...Until that's ready, install this library manually by downloading the zip file and using the ArduinoIDE to "add zip library". (Luckily, it has no extra tasks that would require the full H4 installer)
+One can get a homogeneous H4 Stack versions from the [PlatformIO H4Plugins Environment](https://github.com/hamzahajeir/h4plugins_env). One can reuse the environment directly, or copy the parts of interest in the configuration file `platformio.ini` in a new project.
+
+## Arduino IDE
+
+Simply download the zip of this repository and install as an Arduino library: `Sketch/Include Library/Add .ZIP Library...`
+
+Soon* all H4 libraries will use the [H4 Installer](https://github.com/philbowles/h4installer). This ensures that all versions match and that other additional special functions are included e.g. Addition of optimised board definitions in H4Plugins...
 
 \* = Don't ask :)
 
@@ -313,9 +323,9 @@ See the fully-functional example below in the [Server API](#server-api) section
 
 ## TLS Support
 
-TLS is now supported on ESP32, currently cannot be compiled to esp8266 because of missing headers within arduino core, until we could support it, please contact us to setup the workarounds.
+TLS is now supported on ESP32, currently cannot be compiled to ESP8266 / RP2040 because of missing headers within arduino core, until we could support it, please contact us to setup the workarounds.
 
-For ESP32, currently it requires a custom [arduino-esp32 build](https://github.com/HamzaHajeir/arduino-esp32/tree/lwip-tls) that enables LwIP ALTCP and TLS.  
+For ESP32, currently it requires a custom [arduino-esp32 build](https://github.com/HamzaHajeir/esp32-arduino-lib-builder) that enables LwIP ALTCP and TLS.  
 
 
 ### Usage
@@ -359,7 +369,7 @@ build_flags = -DLWIP_ALTCP=1
     std::string privkey_pass = "..."; // The key that encrypts the private key, it's optional.
     int privkey_pass_len = privkey_pass.length();
     std::string cert = "...";
-    int cert_len = cert.length() + 1;
+    int cert_len = cert.length() + 1; // as of PEM format, size MUST cover the NULL terminator, hence cert.length() + 1
     client->secureTLS((const uint8_t*) ca.data(), ca_len, (const uint8_t*) privkey.data(), privkey_len, (const uint8_t*) privkey_pass.data(), privkey_pass_len, (const uint8_t*) cert, cert_len)
 #else /* TWO_WAY_AUTH */
     client->secureTLS((const uint8_t*) ca.data(), ca_len);
@@ -369,6 +379,10 @@ build_flags = -DLWIP_ALTCP=1
 ```
 
 Checkout [Example Code](examples/H4AsyncClient_TLS/H4AsyncClient_TLS.ino).
+
+
+* Note: For the certificates supplied to `secureTLS` in PEM format, the length MUST be `strlen(cert) + 1` / `cert.length() + 1` to cover the NULL terminator. However, this is not required for DER formats.
+
 
 #### Server
 
@@ -494,6 +508,7 @@ Until then, try to keep packets smaller than a SND_BUF on TX and WND on RX when 
 | ESP32 | 1436 | 5744 | 5744 |425|
 | ESP8266 Low Memory | 536 | 1072 | 2144 |150|
 | ESP8266 High Bandwidth | 1460 | 2920 | 5840 |225|
+| RP2040 | 1460 | 11680 | 11680 | |
 
 ***N.B.*** Once "the source of the lost ACK" has been found, you won't need to worry about any of the above as your code will either "just work" when within safe limits or cause an error (  `H4AT_INPUT_TOO_BIG` or `H4AT_OUTPUT_TOO_BIG`) if outside those limits.
 
