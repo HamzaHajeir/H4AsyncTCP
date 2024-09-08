@@ -508,7 +508,7 @@ Until then, try to keep packets smaller than a SND_BUF on TX and WND on RX when 
 | ESP32 | 1436 | 5744 | 5744 |425|
 | ESP8266 Low Memory | 536 | 1072 | 2144 |150|
 | ESP8266 High Bandwidth | 1460 | 2920 | 5840 |225|
-| RP2040 | 1460 | 11680 | 11680 | |
+| RP2040 | 1460 | 11680 | 11680 | 213 |
 
 ***N.B.*** Once "the source of the lost ACK" has been found, you won't need to worry about any of the above as your code will either "just work" when within safe limits or cause an error (  `H4AT_INPUT_TOO_BIG` or `H4AT_OUTPUT_TOO_BIG`) if outside those limits.
 

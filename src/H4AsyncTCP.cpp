@@ -195,13 +195,13 @@ void H4AsyncClient::retryClose(H4AsyncClient* c,altcp_pcb *pcb)
         return;
     
     if (state <= CLOSED || state > TIME_WAIT){
-        _H4AT_PRINTF("Already freed/closed\n", pcb);
+        _H4AT_PRINTF("Already freed/closed %p\n", pcb);
         return;
     }
     LwIPCoreLocker lock;
     err_t err = altcp_close(pcb);
     if (err != ERR_OK){
-        _H4AT_PRINTF("failed with %d\n", pcb, err);
+        _H4AT_PRINTF("%p failed with %d\n", pcb, err);
         if (err == ERR_MEM){
             h4.queueFunction([c, pcb](){ retryClose(c,pcb); }); // h4.once(1000, [pcb](){retruClose(pcb);}); ???
         }
@@ -772,7 +772,7 @@ void H4AsyncClient::_connect() {
     if (_URL.secure && _tls_mode != H4AT_TLS_NONE){
         H4AT_PRINT1("Setting the secure config PCB=%p\n", pcb); // ENSURE YOU'VE CLOSED THE PREVIOUS CONNECTION by rq->close() if didn't receive onConnectFail/onDisconnect() callbacks.
         // secure.
-        altcp_tls_config *_tlsConfig;
+        altcp_tls_config *_tlsConfig = nullptr;
         auto &ca_cert = _keys[H4AT_TLS_CA_CERTIFICATE];
         _isSecure = true;
         switch (_tls_mode){
