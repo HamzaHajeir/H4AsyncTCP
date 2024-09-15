@@ -193,7 +193,7 @@ class H4AsyncClient {
                 struct  URL {
                     std::string     scheme;
                     std::string     host;
-                    int             port;
+                    uint16_t        port;
                     std::string     path;
                     std::string     query;
                     std::string     fragment;

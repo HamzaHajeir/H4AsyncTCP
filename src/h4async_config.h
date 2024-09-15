@@ -24,7 +24,7 @@ SOFTWARE.
 */
 #pragma once
 #include <lwip/opt.h>
-#define H4AT_VERSION "0.0.23"
+#define H4AT_VERSION "0.0.24"
 /*
     Debug levels: 
     0 - No debug messages, no debug functions
@@ -40,7 +40,10 @@ SOFTWARE.
 #define H4AT_USE_TLS_SESSION    1
 
 
-#define H4AT_HAS_RTOS     (NO_SYS == 0)
+#define H4AT_HAS_RTOS     (NO_SYS == 0) || TARGET_RP2040 /* || TARGET_RP2350 */
+
+/* The LOCK/UNLOCK operations for RP2040 were set and defaulted to disable, as the lwip calls (currently, with no ALTCP) are already locked */
+#define H4AT_RP2040_DONTLOCKUNLOCK  1
 
 #if H4AT_HAS_RTOS
 #define H4AS_RTOS_GET_THREAD_NAME   pcTaskGetName(NULL) // For FreeRTOS (ESP32)

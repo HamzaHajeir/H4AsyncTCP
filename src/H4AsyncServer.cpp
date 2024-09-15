@@ -102,9 +102,9 @@ void H4AsyncServer::begin() {
         auto &privkey = _keys[H4AT_TLS_PRIVATE_KEY];
         auto &privkey_pass = _keys[H4AT_TLS_PRIVAKE_KEY_PASSPHRASE];
         auto &cert = _keys[H4AT_TLS_CERTIFICATE];
-        _tlsConfig = altcp_tls_create_config_server_privkey_cert(privkey->data, privkey->len,
-                                                            privkey_pass? privkey_pass->data : NULL, privkey_pass ? privkey_pass->len : 0,
-                                                            cert->data, cert->len);
+        _tlsConfig = altcp_tls_create_config_server_privkey_cert(privkey->get(), privkey->len,
+                                                            privkey_pass? privkey_pass->get() : NULL, privkey_pass ? privkey_pass->len : 0,
+                                                            cert->get(), cert->len);
         H4AT_PRINT3("SERVER _tlsConfig=%p\n", _tlsConfig);
         if (_tlsConfig) {
             allocator = altcp_allocator_t{altcp_tls_alloc, _tlsConfig};
@@ -151,7 +151,7 @@ void H4AsyncServer::reset()
 #if H4AT_TLS
     for (auto key : _keys) {
         if (key){
-            if (key->data)
+            if (key->get())
                 key->clear();
             delete key;
         }

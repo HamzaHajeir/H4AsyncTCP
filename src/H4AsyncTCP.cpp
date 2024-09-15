@@ -165,7 +165,9 @@ enum tcp_state getTCPState(struct altcp_pcb *conn, bool tls) {
     H4AT_PRINT1("GETSTATE %p NO CONN\n", conn);
     return CLOSED;
 #else
-    return conn->state;
+    if (conn)
+        return conn->state;
+    return tcp_state::CLOSED;
 #endif
 }
 
@@ -343,7 +345,7 @@ err_t _raw_recv(void *arg, struct altcp_pcb *tpcb, struct pbuf *p, err_t err){
             pbuf_copy_partial(p,cpydata,p->tot_len,0); // instead of direct memcpy that only considers the first pbuf of the possible pbufs chain.
             auto cpyflags=p->flags;
             auto cpylen=p->tot_len;
-            H4AT_PRINT2("* p=%p * FREE DATA %p %d 0x%02x bpp=%p\n",p,p->payload,p->tot_len,p->flags,rq->_bpp);
+            H4AT_PRINT2("* p=%p * FREE DATA %p cpy=%p %d 0x%02x bpp=%p\n",p,p->payload,cpydata,p->tot_len,p->flags,rq->_bpp);
             err=ERR_OK;
             h4.queueFunction([rq,cpydata,cpylen,cpyflags]{
                 H4AT_PRINT2("_raw_recv %p data=%p L=%d f=0x%02x \n",rq,cpydata,cpylen,cpyflags);
@@ -427,10 +429,10 @@ err_t _tcp_connected(void* arg, altcp_pcb* tpcb, err_t err){
         H4AsyncClient::openConnections.insert(rq);
         H4AsyncClient::unconnectedClients.erase(rq);
         H4AsyncClient::checkPCBs("CONNECTED", 1);
-        if(rq->_cbConnect) rq->_cbConnect();
         altcp_recv(p, &_raw_recv);
         // ***************************************************
         altcp_sent(p, &_raw_sent);
+        if(rq->_cbConnect) rq->_cbConnect();
 
 #if H4AT_TLS
         rq->_fetchTLSOverhead();
@@ -632,7 +634,7 @@ H4AsyncClient::~H4AsyncClient()
     for (auto& key : _keys)
     {
         if (key) {
-            if (key->data)
+            if (key->get())
                 key->clear();
             delete key;
             // key=nullptr; // unnecessary
@@ -715,7 +717,7 @@ void H4AsyncClient::_handleFragment(const uint8_t* data,u16_t len,u8_t flags) {
                 } else _notify(ERR_MEM,len); 
             }
         } else if(!_addFragment(data,len)) _notify(ERR_MEM,len);
-    } //else Serial.printf("HF while closing!!!\n");
+    } else H4AT_PRINT2("HF while closing!!!\n");
 }
 
 void H4AsyncClient::_scavenge(){
@@ -744,7 +746,7 @@ void H4AsyncClient::__scavenge()
         if((millis() - oc->_lastSeen) > H4AS_SCAVENGE_FREQ || oc->_state == H4AT_CONN_CLOSING) tbd.push_back(oc);
     }
     for(auto &uc:unconnectedClients){
-        H4AT_PRINT1("T=%u UC %p ct=%u age(s)=%u SCAV=%u\n",millis(),uc,uc->_creatTime,(millis() - uc->_creatTime) / 1000,H4AS_SCAVENGE_FREQ);
+        H4AT_PRINT1("T=%u UC %p ct=%u age(s)=%u SCAV=%u PCB=%p\n",millis(),uc,uc->_creatTime,(millis() - uc->_creatTime) / 1000,H4AS_SCAVENGE_FREQ, uc->pcb);
         // if((millis() - uc->_creatTime) > H4AS_SCAVENGE_FREQ) tbd.push_back(uc);
         if((uc->pcb==0 && uc->_state == H4AT_CONN_CLOSING) || ((millis() - uc->_creatTime) > H4AS_SCAVENGE_FREQ)) tbd.push_back(uc);
     }
@@ -777,7 +779,7 @@ void H4AsyncClient::_connect() {
         _isSecure = true;
         switch (_tls_mode){
             case H4AT_TLS_ONE_WAY:
-                _tlsConfig = altcp_tls_create_config_client(ca_cert->data, ca_cert->len);
+                _tlsConfig = altcp_tls_create_config_client(ca_cert->get(), ca_cert->len);
                 H4AT_PRINT2("ONE WAY TLS _tlsConfig=%p\n", _tlsConfig);
                 break;
 
@@ -787,10 +789,10 @@ void H4AsyncClient::_connect() {
                 auto &privkey_pass = _keys[H4AT_TLS_PRIVAKE_KEY_PASSPHRASE];
                 auto &client_cert = _keys[H4AT_TLS_CERTIFICATE];
 
-                _tlsConfig = altcp_tls_create_config_client_2wayauth(ca_cert->data, ca_cert->len,
-                                                               privkey->data, privkey->len,
-                                                               privkey_pass ? privkey_pass->data : NULL, privkey_pass ? privkey_pass->len : 0,
-                                                               client_cert->data, client_cert->len);
+                _tlsConfig = altcp_tls_create_config_client_2wayauth(ca_cert->get(), ca_cert->len,
+                                                               privkey->get(), privkey->len,
+                                                               privkey_pass ? privkey_pass->get() : NULL, privkey_pass ? privkey_pass->len : 0,
+                                                               client_cert->get(), client_cert->len);
                 H4AT_PRINT2("TWO WAY TLS conf=%p\n", _tlsConfig);
             }
                 break;
@@ -961,7 +963,7 @@ bool H4AsyncClient::_processQueue() {
     while (_queue.size() && done) {
         done=false;
         auto& qd=*_queue.front();
-        auto sent = _processTX(qd.m.data + qd.tx_len, qd.m.len - qd.tx_len, qd.m.managed);
+        auto sent = _processTX(qd.m.get() + qd.tx_len, qd.m.len - qd.tx_len, qd.m.managed);
         // Serial.printf("sent=%d condition %d\n", sent, sent>0 && sent<=qd.m.len);
         if (sent > 0 && sent <= qd.m.len)
             qd.tx_len += sent;
