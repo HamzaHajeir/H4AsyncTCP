@@ -301,7 +301,7 @@ void H4AsyncClient::_shutdown() {
     }
     if (!_scavenging) {
         H4AT_PRINT1("Queueing __scavange()\n");
-        bool _scavenging = true;
+        _scavenging = true;
         h4.queueFunction([]()
                          { H4AsyncClient::__scavenge(); });
     }
@@ -354,7 +354,7 @@ err_t _raw_recv(void *arg, struct altcp_pcb *tpcb, struct pbuf *p, err_t err){
                     H4AT_PRINT2("Prevent processing of closing connection\n");
                     return;
                 }
-                if (rq->_state == H4AT_CONN_WILLCLOSE) H4AT_PRINT2("WATCHOUT THE CONNECTION UNDER CLOSING!\n");
+                if (rq->_state == H4AT_CONN_WILLCLOSE){ H4AT_PRINT2("WATCHOUT THE CONNECTION UNDER CLOSING!\n"); }
                 rq->_lastSeen=millis();
                 lock.unlock();
                 rq->_handleFragment((const uint8_t*) cpydata,cpylen,cpyflags);
@@ -495,12 +495,11 @@ void H4AsyncClient::_setTLSSession()
         H4AT_PRINT2("NO Session is available internally\n");
         return;
     }
-    int ret=-99; // no pcb
     if (!pcb) {
         H4AT_PRINT2("No connection PCB!\n");
         return;
     }
-    ret = altcp_tls_set_session(pcb, static_cast<altcp_tls_session*>(_session));
+    int ret = altcp_tls_set_session(pcb, static_cast<altcp_tls_session*>(_session));
     H4AT_PRINT2("set session %s ret=%d\n", (ret == ERR_OK ? "SUCCEEDED" : "FAILED"), ret);
 #endif
 }
@@ -1002,16 +1001,11 @@ void H4AsyncClient::TX(const uint8_t* data,size_t len,bool copy){
             }
         }
         lock.unlock();
-        if (sent>=0 && sent<=len){
-            if (sent < len){
-                H4AT_PRINT2("Incomplete TX left %d\n", len - sent);
-                // Do queue the current TX.
-                _queue.push(new TCPData{data+sent, len-sent, copy});
-                txQueueClients.insert(this);
-                // h4.queueFunction([=]
-                //                  { _processQueue(); }, // callable upon _raw_sent
-                //                  nullptr, H4AT_TCPQUEUE_ID, true);
-            }
+        if (sent < len){
+            H4AT_PRINT2("Incomplete TX left %d\n", len - sent);
+            // Do queue the current TX.
+            _queue.push(new TCPData{data+sent, len-sent, copy});
+            txQueueClients.insert(this);
         }
     }
     return;
@@ -1057,7 +1051,7 @@ bool H4AsyncClient::isPrivKeyValid(const u8_t *privkey, size_t privkey_len,
     static mbedtls_entropy_context entropy;
     mbedtls_entropy_init(&entropy);
     mbedtls_ctr_drbg_init(&ctr_drbg);
-    int ret = mbedtls_ctr_drbg_seed(&ctr_drbg, mbedtls_entropy_func, &entropy, NULL, 0);
+    mbedtls_ctr_drbg_seed(&ctr_drbg, mbedtls_entropy_func, &entropy, NULL, 0);
     auto r = mbedtls_pk_parse_key(&ctx, privkey, privkey_len, privkey_pass, privkey_pass_len
                             , mbedtls_ctr_drbg_random, &ctr_drbg
     );

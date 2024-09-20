@@ -323,7 +323,7 @@ class H4AsyncServer {
                                             auto fh=_HAL_freeHeap();
                                             auto fb=_HAL_maxHeapBlock();
                                             auto _heapLO = H4AT_HEAP_THROTTLE_LO + srv._heap_alloc;
-                                            auto _heapHI = H4AT_HEAP_THROTTLE_HI + srv._heap_alloc;
+                                            // auto _heapHI = H4AT_HEAP_THROTTLE_HI + srv._heap_alloc;
                                             auto _blockLO= H4AT_HEAP_THROTTLE_LO + srv._block_alloc;
                                             // Serial.printf("FREE HEAP %u LOW %u HIGH %u BKV %d\n",fh,_heapLO,_heapHI,_bakov);
                                             H4AT_PRINT3("FREE HEAP %u BLOCK %u LOWH %u LOWB %u\n",fh,fb,_heapLO,_blockLO);
