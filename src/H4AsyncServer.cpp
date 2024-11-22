@@ -160,6 +160,7 @@ void H4AsyncServer::reset()
 #endif
     /* Cleanup on failure, especially important for TLS connections */
     if (_raw_pcb) {
+        LwIPCoreLocker lock;
         altcp_close(_raw_pcb);
         _raw_pcb = NULL;
     }

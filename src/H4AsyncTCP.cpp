@@ -655,6 +655,7 @@ void H4AsyncClient::_clearDanglingInput() {
 }
 
 
+/* [ ] CheckURL before parsing ... */
 void  H4AsyncClient::_parseURL(const std::string& url){
     if(url.find("http",0)) _parseURL(std::string("http://")+url);
     else {
