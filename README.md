@@ -119,13 +119,7 @@
 
 ---
 
-Licence: ![licence](https://i.creativecommons.org/l/by-nc-sa/4.0/80x15.png) Creative Commons: Attribution-NonCommercial-ShareAlike 4.0 International (CC BY-NC-SA 4.0) [Legal Text](https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode)
-
-# ***N.B. This licence expressly prohibits commercial use***
-
----
-
-## If you are able, please [Support me on Patreon](https://patreon.com/esparto) or [PayPal](https://www.paypal.com/paypalme/h4plugins) and/or subscribe to my [Youtube channel (instructional videos)](https://www.youtube.com/channel/UCYi-Ko76_3p9hBUtleZRY6g)
+## Keep Philbowles remembered by viewing and sharing his [Youtube channel (instructional videos)](https://www.youtube.com/channel/UCYi-Ko76_3p9hBUtleZRY6g)
 
 ---
 
@@ -522,3 +516,6 @@ Until then, try to keep packets smaller than a SND_BUF on TX and WND on RX when 
 - [Facebook General ESP8266 / ESP32](https://www.facebook.com/groups/2125820374390340/)
 - [Facebook ESP8266 Programming Questions](https://www.facebook.com/groups/esp8266questions/)
 - [Facebook ESP Developers (moderator)](https://www.facebook.com/groups/ESP8266/)
+
+## Licence: MIT License
+For more information, read out the [License change statement](Statement.md), which covers our awared and responsible decision.
