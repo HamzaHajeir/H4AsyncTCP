@@ -42,6 +42,8 @@ enum {
 };
 #endif
 enum {
+    H4AT_OK,
+    H4AT_ERR_BAD_URL,
     H4AT_ERR_DNS_FAIL,
     H4AT_ERR_DNS_NF,
     H4AT_HEAP_LIMITER_ON,
@@ -52,6 +54,7 @@ enum {
     H4AT_UNCONNECTED,
     H4AT_OUTPUT_TOO_BIG,
     H4AT_ERR_NO_PCB,
+    H4AT_CONNECT_FAILED,
 #if H4AT_TLS
     H4AT_BAD_TLS_CONFIG,
     H4AT_WRONG_TLS_MODE,
@@ -127,7 +130,7 @@ using H4AT_TCP_QUEUE    =std::queue<TCPData*>;
 class H4AsyncClient {
         static  void                __scavenge();
         static  bool                _scavenging;
-                void                _parseURL(const std::string& url);
+                bool                _parseURL(const std::string& url);
                 size_t              _processTX(const uint8_t* data, size_t length, bool copy);
                 bool                _processQueue();
                 void                _popQueue() { if (_queue.size()) { delete _queue.front(); _queue.pop();} }
@@ -213,9 +216,9 @@ class H4AsyncClient {
         H4AsyncClient(altcp_pcb* p=0);
         virtual ~H4AsyncClient();
                 void                close(){ _shutdown(); }
-                void                connect(const std::string& host,uint16_t port);
-                void                connect(IPAddress ip,uint16_t port);
-                void                connect(const std::string& url);
+                bool                connect(const std::string& host,uint16_t port);
+                bool                connect(IPAddress ip,uint16_t port);
+                bool                connect(const std::string& url);
                 bool                connected();
                 //
                 //void                dump();
@@ -265,7 +268,7 @@ class H4AsyncClient {
 // syscalls - just don't...
                 uint8_t*            _addFragment(const uint8_t* data,u16_t len);
                 void                _clearDanglingInput();
-                void                _connect();
+                bool                _connect();
                 void                _handleFragment(const uint8_t* data,u16_t len,u8_t flags);
                 void                _notify(int e,int i=0);
         static  void                _scavenge();

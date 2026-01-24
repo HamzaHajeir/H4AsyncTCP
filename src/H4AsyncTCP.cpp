@@ -296,6 +296,10 @@ void H4AsyncClient::_shutdown() {
 void _raw_error(void *arg, err_t err){
     H4AT_PRINT1("_raw_error c=%p e=%d\n",arg,err);
     auto c=reinterpret_cast<H4AsyncClient*>(arg);
+    if (!(H4AsyncClient::unconnectedClients.count(c) || H4AsyncClient::openConnections.count(c))) {
+        H4AT_PRINT1("Error out of sync _raw_error. NOT FOUND CLIENT!!\n ");
+        return;
+    }
     c->pcb=NULL;
     c->_state=H4AT_CONN_ERROR;
 #if H4AT_TLS_SESSION
@@ -434,7 +438,8 @@ void _tcp_dns_found(const char * name, ip_addr_t* ipaddr, void * arg) {
     auto p=reinterpret_cast<H4AsyncClient*>(arg);
     if(ipaddr){
         ip_addr_copy(p->_URL.addr, *ipaddr);
-        p->_connect(); // continue on lwip thread
+        if (!p->_connect()) // continue on lwip thread
+            p->_notify(H4AT_CONNECT_FAILED);
     } else p->_notify(H4AT_ERR_DNS_NF); // [ ] might queue on mainloop..
 }
 //
@@ -638,12 +643,15 @@ void H4AsyncClient::_clearDanglingInput() {
     }
 }
 
-
-/* [ ] CheckURL before parsing ... */
-void  H4AsyncClient::_parseURL(const std::string& url){
-    if(url.find("http",0)) _parseURL(std::string("http://")+url);
+/* [ ] Might change API usage to separate secure/nonsecure schemes, uproot from the url */
+bool H4AsyncClient::_parseURL(const std::string& url){
+    if (url.empty()) return false;
+    if(url.find("http",0) == std::string::npos) return _parseURL(std::string("http://")+url);
     else {
         std::vector<std::string> vs=split(url,"//");
+        if (vs.size() < 2) return false;
+        else if (vs.size() > 2)
+            vs[1] = join(std::vector<std::string>(vs.begin()+1, vs.end()),"//");
         _URL = {};
         _URL.secure=url.find("https",0)==std::string::npos ? false:true;
         H4AT_PRINT4("SECURE = %d  %s\n",_URL.secure,_URL.secure ? "TRUE":"FALSE");
@@ -658,12 +666,15 @@ void  H4AsyncClient::_parseURL(const std::string& url){
         _URL.path=std::string("/")+((vs3.size()>1) ? join(std::vector<std::string>(++vs3.begin(),vs3.end()),"/"):"");
         H4AT_PRINT4("path %s\n", _URL.path.data());
 
+        if (vs3.empty() || vs3.front().empty()) return false;
         std::vector<std::string> vs4=split(vs3[0],":");
         _URL.port=vs4.size()>1 ? atoi(vs4[1].data()):(_URL.secure ? 443:80);
         H4AT_PRINT4("port %d\n", _URL.port);
 
+        if (vs4.empty()) return false;
         _URL.host=vs4[0];
         H4AT_PRINT4("host %s\n",_URL.host.data());
+        return true;
     }
 }
 
@@ -747,7 +758,7 @@ void H4AsyncClient::__scavenge()
     _scavenging = false;
 }
 
-void H4AsyncClient::_connect() {
+bool H4AsyncClient::_connect() {
     H4AT_PRINT2("_connect p=%p state=%d\n",pcb, pcb ? getTCPState(pcb, _isSecure) : -1);
     H4AT_PRINT4("ip %s port %d\n", ipaddr_ntoa(&_URL.addr), _URL.port);
     LwIPCoreLocker lock;
@@ -790,7 +801,7 @@ void H4AsyncClient::_connect() {
         else {
             H4AT_PRINT1("INVALID TLS CONFIGURATION\n");
             _notify(H4AT_BAD_TLS_CONFIG);
-            return;
+            return false;
         }
     } else {
         H4AT_PRINT1("SETTING TCP CHANNEL\n");
@@ -803,7 +814,7 @@ void H4AsyncClient::_connect() {
     if (!pcb) {
         H4AT_PRINT1("NO PCB ASSIGNED!\n");
         _notify(H4AT_ERR_NO_PCB);
-        return;
+        return false;
     }
     altcp_arg(pcb, this);
     altcp_err(pcb, &_raw_error);
@@ -820,36 +831,44 @@ void H4AsyncClient::_connect() {
     if (_isSecure)
         _addSNI();
 #endif
-    _notify(altcp_connect(pcb, &_URL.addr, _URL.port,(altcp_connected_fn)&_tcp_connected));
+    auto result = altcp_connect(pcb, &_URL.addr, _URL.port,(altcp_connected_fn)&_tcp_connected);
+    _notify(result);
     _scavenge();
+    return result == ERR_OK;
 }
 
 //
 //      PUBLICS
 //
-void H4AsyncClient::connect(const std::string& host,uint16_t port){
+bool H4AsyncClient::connect(const std::string& host,uint16_t port){
     H4AT_PRINT2("connect h=%s, port=%d\n",host.data(),port);
     IPAddress ip;
-    if(ip.fromString(host.data())) connect(ip,port);
+    if(ip.fromString(host.data())) return connect(ip,port);
     else {
         _URL.port=port;
         LwIPCoreLocker lock;
         err_t err = dns_gethostbyname(host.data(), &_URL.addr, (dns_found_callback)&_tcp_dns_found, this);
-        if(err) _notify(H4AT_ERR_DNS_FAIL,err);
-        else _connect();
+        if(err && err != ERR_INPROGRESS){
+            _notify(H4AT_ERR_DNS_FAIL, err);
+            return false;
+        }
+        else return _connect();
     }
 }
 
-void H4AsyncClient::connect(const std::string& url){
-    _parseURL(url);
-   connect(_URL.host,_URL.port);
+bool H4AsyncClient::connect(const std::string& url){
+    if (!_parseURL(url)){
+        _notify(H4AT_ERR_BAD_URL);
+        return false;
+    }
+   return connect(_URL.host,_URL.port);
 }
 
-void H4AsyncClient::connect(IPAddress ip,uint16_t port){
+bool H4AsyncClient::connect(IPAddress ip,uint16_t port){
     H4AT_PRINT2("connect ip=%s, port=%d\n",ip.toString().c_str(),_URL.port);
     _URL.port=port;
     ip_addr_set_ip4_u32(&_URL.addr, ip);
-    _connect();
+    return _connect();
 }
 
 bool H4AsyncClient::connected(){ return _state == H4AT_CONN_CONNECTED/*  && pcb && getTCPState(pcb, _isSecure) == ESTABLISHED */; } // Unnecessary checks? (pcb && getState) as there will happen some data races ...
